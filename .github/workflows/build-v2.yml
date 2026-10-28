@@ -1,0 +1,90 @@
+name: build-v2
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          architecture: x64
+
+      - name: Cache Gradle / ForgeGradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('build.gradle', 'gradle.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Install Gradle 2.14.1
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://services.gradle.org/distributions/gradle-2.14.1-bin.zip" -OutFile "$env:RUNNER_TEMP\gradle.zip"
+          Expand-Archive "$env:RUNNER_TEMP\gradle.zip" -DestinationPath $env:RUNNER_TEMP
+          "$env:RUNNER_TEMP\gradle-2.14.1\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Build mod (Forge 1.8.9)
+        shell: pwsh
+        run: gradle --no-daemon setupCIWorkspace build
+
+      - name: Build native (CMake, MSVC x64)
+        shell: pwsh
+        run: |
+          cmake -S native -B native/build -A x64
+          cmake --build native/build --config Release
+          foreach ($f in 'dx11gl.dll','dx11gl_probe.exe','opengl32.dll') {
+            if (-not (Test-Path "native/build/Release/$f")) { throw "Faltou gerar $f" }
+          }
+
+      - name: Run probe (informativo)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          ./native/build/Release/dx11gl_probe.exe
+          "exit code: $LASTEXITCODE (1 e esperado no runner sem GPU)"
+          exit 0
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/mods, dist/dx11gl, dist/tools | Out-Null
+          Get-ChildItem build/libs -Filter *.jar | Where-Object { $_.Name -notmatch 'sources' } |
+            Copy-Item -Destination dist/mods
+          Copy-Item native/build/Release/dx11gl.dll dist/dx11gl/
+          Copy-Item native/build/Release/opengl32.dll dist/dx11gl/
+          Copy-Item native/build/Release/dx11gl_probe.exe dist/tools/
+          Copy-Item README.md dist/
+          Get-ChildItem -Recurse dist | Select-Object FullName, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dx11gl-windows
+          path: dist/
+          if-no-files-found: error
+
+      - name: Zip for release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath "dx11gl-${{ github.ref_name }}.zip"
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dx11gl-${{ github.ref_name }}.zip
