@@ -722,7 +722,7 @@ static const bool kIsCppImpl[] = {
     false,
     false,
     false,
-    false,
+    true,
     false,
     false,
     false,

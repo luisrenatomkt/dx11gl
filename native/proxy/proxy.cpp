@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "d3d_test.h"
 #include "gl_names.h"
 
 extern "C" {
@@ -34,6 +35,7 @@ typedef BOOL (WINAPI* PFN_wglMakeCurrent)(void*, void*);
 typedef BOOL (WINAPI* PFN_wglDeleteContext)(void*);
 typedef GLPROC (WINAPI* PFN_wglGetProcAddress)(LPCSTR);
 typedef const unsigned char* (WINAPI* PFN_glGetString)(unsigned);
+typedef BOOL (WINAPI* PFN_wglSwapBuffers)(void*);
 typedef int (WINAPI* PFN_wglGetPixelFormat)(void*);
 typedef int (WINAPI* PFN_wglDescribePixelFormat)(void*, int, unsigned, void*);
 
@@ -60,6 +62,11 @@ std::string g_glVendor, g_glRenderer, g_glVersion;
 std::atomic<bool> g_glInfoDone(false), g_trace(true);
 std::atomic<int> g_makeCurrentLogged(0), g_missingLogged(0), g_limitLogged(0);
 size_t g_swapIdx = static_cast<size_t>(-1);
+// 5c: teste de apresentacao Direct3D 11 na janela do jogo (opt-in: d3dtest=true em config/dx11gl.cfg)
+std::atomic<bool> g_d3dTest(false), g_d3dTestDone(false);
+std::atomic<DWORD> g_mainTid(0);
+std::atomic<long> g_mainFrames(0);
+PFN_wglSwapBuffers r_swap = nullptr;
 
 PFN_wglCreateContext r_create = nullptr;
 PFN_wglMakeCurrent r_makeCurrent = nullptr;
@@ -220,6 +227,23 @@ void WriteStats() {
     std::fclose(f);
 }
 
+// Le uma chave booleana de <gamedir>/config/dx11gl.cfg (g_dir = <gamedir>/dx11gl/).
+bool ReadCfgBool(const char* key, bool def) {
+    FILE* f = _wfopen((g_dir + L"..\\config\\dx11gl.cfg").c_str(), L"r");
+    if (!f) return def;
+    char line[256];
+    const size_t kl = std::strlen(key);
+    bool val = def;
+    while (std::fgets(line, sizeof(line), f)) {
+        if (line[0] == '#') continue;
+        if (std::strncmp(line, key, kl) == 0 && line[kl] == '=') {
+            val = std::strncmp(line + kl + 1, "true", 4) == 0;
+        }
+    }
+    std::fclose(f);
+    return val;
+}
+
 DWORD WINAPI StatsThread(LPVOID) {
     for (;;) {
         Sleep(5000);
@@ -267,10 +291,12 @@ void DoInit() {
     r_makeCurrent = reinterpret_cast<PFN_wglMakeCurrent>(GetProcAddress(g_realMod, "wglMakeCurrent"));
     r_delete = reinterpret_cast<PFN_wglDeleteContext>(GetProcAddress(g_realMod, "wglDeleteContext"));
     r_getProc = reinterpret_cast<PFN_wglGetProcAddress>(GetProcAddress(g_realMod, "wglGetProcAddress"));
+    r_swap = reinterpret_cast<PFN_wglSwapBuffers>(GetProcAddress(g_realMod, "wglSwapBuffers"));
+    g_d3dTest = ReadCfgBool("d3dtest", false);
 
-    Log("proxy inicializado (5b). Modulo proxy=" + Ptr(g_self) + " | opengl32 real=" + Ptr(g_realMod) +
+    Log("proxy inicializado (5c). Modulo proxy=" + Ptr(g_self) + " | opengl32 real=" + Ptr(g_realMod) +
         " | funcoes resolvidas " + std::to_string(resolved) + "/" + std::to_string(kCount) +
-        " | trace=" + (g_trace ? "ligado" : "desligado"));
+        " | trace=" + (g_trace ? "ligado" : "desligado") + " | d3dtest=" + (g_d3dTest ? "LIGADO" : "desligado"));
     CreateThread(nullptr, 0, StatsThread, nullptr, 0, nullptr);
 }
 
@@ -339,6 +365,8 @@ BOOL WINAPI wglMakeCurrent(void* hdc, void* rc) {
             Log("GL_VENDOR=" + g_glVendor + " | GL_RENDERER=" + g_glRenderer + " | GL_VERSION=" + g_glVersion);
         }
         LogWindowAndPixelFormat(hdc);
+        g_mainTid = GetCurrentThreadId();
+        Log("thread principal do GL: " + std::to_string(g_mainTid.load()));
     }
     return ok;
 }
@@ -349,6 +377,24 @@ BOOL WINAPI wglDeleteContext(void* rc) {
     BOOL ok = r_delete(rc);
     Log("wglDeleteContext(rc=" + Ptr(rc) + ") -> " + (ok ? "ok" : "FALHOU"));
     return ok;
+}
+
+BOOL WINAPI wglSwapBuffers(void* hdc) {
+    EnsureInit();
+    if (g_swapIdx != static_cast<size_t>(-1)) g_counts[g_swapIdx] = g_counts[g_swapIdx] + 1;
+    // 5c: depois de ~300 quadros da thread principal (jogo ja no menu; a tela de carregamento do Forge usa outra
+    // thread), roda UMA vez o teste de apresentacao Direct3D 11 na janela atual por 3 segundos.
+    if (g_d3dTest && !g_d3dTestDone.load() && g_mainTid.load() != 0 && GetCurrentThreadId() == g_mainTid.load()) {
+        if (g_mainFrames.fetch_add(1) + 1 >= 300) {
+            HWND w = WindowFromDC(reinterpret_cast<HDC>(hdc));
+            if (w && IsWindowVisible(w) && !g_d3dTestDone.exchange(true)) {
+                Log("d3dtest: iniciando na janela HWND=" + Ptr(w) + " (a tela vai mudar de cor por 3 s)");
+                std::string res = dx11gl::RunPresentTest(w, 3);
+                Log("d3dtest: resultado\n" + res);
+            }
+        }
+    }
+    return r_swap ? r_swap(hdc) : FALSE;
 }
 
 GLPROC WINAPI wglGetProcAddress(LPCSTR name) {

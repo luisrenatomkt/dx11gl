@@ -28,9 +28,12 @@ if(JNI_FOUND)
   target_link_libraries(dx11gl PRIVATE dx11gl_probe_core)
   # Proxy opengl32.dll (Etapa 5a): passthrough com log. Usa MASM (ml64) para os stubs.
   enable_language(ASM_MASM)
-  add_library(dx11gl_glproxy SHARED proxy/proxy.cpp proxy/gl_stubs.asm proxy/opengl32.def)
+  add_library(dx11gl_glproxy SHARED proxy/proxy.cpp proxy/d3d_test.cpp proxy/gl_stubs.asm proxy/opengl32.def)
   target_include_directories(dx11gl_glproxy PRIVATE ${JNI_INCLUDE_DIRS} proxy)
   set_target_properties(dx11gl_glproxy PROPERTIES OUTPUT_NAME opengl32 PREFIX "")
+  # d3d11.dll so e carregada se o teste 5c rodar (delay-load): o proxy continua minimo quando d3dtest=false.
+  target_link_libraries(dx11gl_glproxy PRIVATE d3d11 delayimp)
+  target_link_options(dx11gl_glproxy PRIVATE /DELAYLOAD:d3d11.dll)
 else()
   message(WARNING "JDK/JNI nao encontrado: apenas dx11gl_probe.exe sera gerado.")
 endif()

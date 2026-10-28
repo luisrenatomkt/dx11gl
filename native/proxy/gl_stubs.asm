@@ -1759,11 +1759,6 @@ wglShareLists PROC
     inc DWORD PTR [g_counts+1416]
     jmp QWORD PTR [g_real+2832]
 wglShareLists ENDP
-PUBLIC wglSwapBuffers
-wglSwapBuffers PROC
-    inc DWORD PTR [g_counts+1420]
-    jmp QWORD PTR [g_real+2840]
-wglSwapBuffers ENDP
 PUBLIC wglSwapLayerBuffers
 wglSwapLayerBuffers PROC
     inc DWORD PTR [g_counts+1424]

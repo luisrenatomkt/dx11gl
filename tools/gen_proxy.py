@@ -5,7 +5,7 @@ Funcoes em CPP_IMPL sao implementadas em proxy.cpp; as demais viram stubs MASM '
 import os
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 names = [l.strip() for l in open(os.path.join(root, 'tools', 'gl_exports.txt')) if l.strip()]
-CPP_IMPL = {'wglCreateContext', 'wglMakeCurrent', 'wglDeleteContext', 'wglGetProcAddress'}
+CPP_IMPL = {'wglCreateContext', 'wglMakeCurrent', 'wglDeleteContext', 'wglGetProcAddress', 'wglSwapBuffers'}
 assert CPP_IMPL <= set(names), 'lista de nomes incompleta'
 out = os.path.join(root, 'native', 'proxy')
 os.makedirs(out, exist_ok=True)
