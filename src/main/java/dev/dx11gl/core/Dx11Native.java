@@ -21,6 +21,26 @@ public final class Dx11Native {
         return loaded;
     }
 
+    private static boolean proxyLoaded;
+
+    /**
+     * Carrega o opengl32.dll proxy. O ARQUIVO PRECISA se chamar opengl32.dll: assim, quando o LWJGL pedir
+     * LoadLibrary("opengl32.dll"), o Windows reaproveita este modulo ja carregado (hipotese a validar).
+     */
+    public static synchronized boolean loadProxy(File dll) {
+        if (proxyLoaded) return true;
+        try {
+            System.load(dll.getAbsolutePath());
+            proxyLoaded = true;
+        } catch (Throwable t) {
+            Dx11Log.error("Nao foi possivel carregar o proxy " + dll + ": " + t);
+        }
+        return proxyLoaded;
+    }
+
+    /** Inicializa o proxy (carrega o opengl32 real do sistema). */
+    public static native boolean proxyInit();
+
     /** Primeira linha: "RESULT=OK" ou "RESULT=FAIL"; o resto e texto de diagnostico. */
     public static native String probe();
 }

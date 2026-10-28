@@ -5,6 +5,8 @@ do projeto e diagnostica o Direct3D 11 da sua GPU. Veja `docs/STATUS.md`.
 
 > **Sem instalar nada:** veja `docs/COMPILAR_GITHUB.md` (compilação automática pelo GitHub Actions).
 
+> **Etapa 5a:** teste do proxy `opengl32.dll` — veja `docs/ETAPA_5A.md`.
+
 ## 1. Passo imediato: testar a GT 610 (não precisa do Minecraft)
 Requisitos: Windows 10 x64, Visual Studio 2022 Build Tools (C++), CMake.
 

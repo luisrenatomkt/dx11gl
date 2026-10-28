@@ -15,6 +15,7 @@ public class Dx11GlMod {
     public void preInit(FMLPreInitializationEvent event) {
         Dx11Log.info("Mod reconhecido pelo Forge. Estado do D3D11: "
                 + (Dx11CorePlugin.probeOk ? "diagnostico OK" : "nao validado")
+                + " | proxy opengl32: " + Dx11CorePlugin.proxyState
                 + " | renderizador ativo: OpenGL (backend D3D11 ainda nao implementado)");
     }
 }

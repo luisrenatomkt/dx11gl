@@ -9,8 +9,13 @@ import java.util.Properties;
 /** Configuracao em <gamedir>/config/dx11gl.cfg. enabled=false desativa tudo (OpenGL original). */
 public final class Dx11Config {
     public final boolean enabled;
+    /** Etapa 5a: carrega o opengl32.dll proxy (passthrough com log). Padrao: desligado. */
+    public final boolean proxy;
 
-    private Dx11Config(boolean enabled) { this.enabled = enabled; }
+    private Dx11Config(boolean enabled, boolean proxy) {
+        this.enabled = enabled;
+        this.proxy = proxy;
+    }
 
     public static Dx11Config load(File gameDir) {
         File cfg = new File(new File(gameDir, "config"), "dx11gl.cfg");
@@ -27,17 +32,19 @@ public final class Dx11Config {
             }
         } else {
             p.setProperty("enabled", "true");
+            p.setProperty("proxy", "false");
             cfg.getParentFile().mkdirs();
             FileOutputStream out = null;
             try {
                 out = new FileOutputStream(cfg);
-                p.store(out, "DX11 GL - enabled=false volta ao OpenGL original");
+                p.store(out, "DX11 GL - enabled=false volta ao OpenGL original; proxy=true liga o teste do opengl32 proxy (etapa 5a)");
             } catch (IOException e) {
                 Dx11Log.error("Nao foi possivel criar " + cfg + ": " + e);
             } finally {
                 if (out != null) try { out.close(); } catch (IOException ignored) {}
             }
         }
-        return new Dx11Config(Boolean.parseBoolean(p.getProperty("enabled", "true").trim()));
+        return new Dx11Config(Boolean.parseBoolean(p.getProperty("enabled", "true").trim()),
+                Boolean.parseBoolean(p.getProperty("proxy", "false").trim()));
     }
 }
