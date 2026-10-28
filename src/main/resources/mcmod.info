@@ -1,0 +1,9 @@
+[{
+  "modid": "dx11gl",
+  "name": "DX11 GL",
+  "description": "Camada experimental OpenGL -> Direct3D 11 para Minecraft 1.8.9 (em desenvolvimento).",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "authorList": [],
+  "credits": "Implementacao independente; dx12gl-3.2.1 usado apenas como referencia de arquitetura."
+}]

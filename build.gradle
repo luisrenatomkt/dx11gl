@@ -1,0 +1,43 @@
+// Projeto Forge 1.8.9 (ForgeGradle 2.1). Requer JDK 8 e Gradle 2.14 (wrapper 2.14.1 recomendado).
+buildscript {
+    repositories {
+        jcenter()
+        maven { name = 'forge'; url = 'https://maven.minecraftforge.net/' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = project.modVersion
+group = 'dev.dx11gl'
+archivesBaseName = 'dx11gl'
+
+sourceCompatibility = targetCompatibility = '1.8'
+
+minecraft {
+    version = '1.8.9-11.15.1.2318-1.8.9'
+    runDir = 'run'
+    mappings = 'stable_22'
+}
+
+jar {
+    manifest {
+        attributes(
+            'FMLCorePlugin': 'dev.dx11gl.core.Dx11CorePlugin',
+            'FMLCorePluginContainsFMLMod': 'true'
+        )
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
