@@ -47,7 +47,7 @@ jobs:
         run: |
           cmake -S native -B native/build -A x64
           cmake --build native/build --config Release
-          foreach ($f in 'dx11gl.dll','dx11gl_probe.exe') {
+          foreach ($f in 'dx11gl.dll','dx11gl_probe.exe','opengl32.dll') {
             if (-not (Test-Path "native/build/Release/$f")) { throw "Faltou gerar $f" }
           }
 
@@ -66,6 +66,7 @@ jobs:
           Get-ChildItem build/libs -Filter *.jar | Where-Object { $_.Name -notmatch 'sources' } |
             Copy-Item -Destination dist/mods
           Copy-Item native/build/Release/dx11gl.dll dist/dx11gl/
+          Copy-Item native/build/Release/opengl32.dll dist/dx11gl/
           Copy-Item native/build/Release/dx11gl_probe.exe dist/tools/
           Copy-Item README.md dist/
           Get-ChildItem -Recurse dist | Select-Object FullName, Length
