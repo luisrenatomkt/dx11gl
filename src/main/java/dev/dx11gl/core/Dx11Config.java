@@ -11,10 +11,13 @@ public final class Dx11Config {
     public final boolean enabled;
     /** Etapa 5a: carrega o opengl32.dll proxy (passthrough com log). Padrao: desligado. */
     public final boolean proxy;
+    /** Etapa 5b: conta tambem as funcoes obtidas por wglGetProcAddress. Padrao: ligado (so vale com proxy=true). */
+    public final boolean trace;
 
-    private Dx11Config(boolean enabled, boolean proxy) {
+    private Dx11Config(boolean enabled, boolean proxy, boolean trace) {
         this.enabled = enabled;
         this.proxy = proxy;
+        this.trace = trace;
     }
 
     public static Dx11Config load(File gameDir) {
@@ -33,6 +36,7 @@ public final class Dx11Config {
         } else {
             p.setProperty("enabled", "true");
             p.setProperty("proxy", "false");
+            p.setProperty("trace", "true");
             cfg.getParentFile().mkdirs();
             FileOutputStream out = null;
             try {
@@ -45,6 +49,7 @@ public final class Dx11Config {
             }
         }
         return new Dx11Config(Boolean.parseBoolean(p.getProperty("enabled", "true").trim()),
-                Boolean.parseBoolean(p.getProperty("proxy", "false").trim()));
+                Boolean.parseBoolean(p.getProperty("proxy", "false").trim()),
+                Boolean.parseBoolean(p.getProperty("trace", "true").trim()));
     }
 }

@@ -38,8 +38,8 @@ public final class Dx11Native {
         return proxyLoaded;
     }
 
-    /** Inicializa o proxy (carrega o opengl32 real do sistema). */
-    public static native boolean proxyInit();
+    /** Inicializa o proxy (carrega o opengl32 real). trace=true: conta tambem as funcoes obtidas por wglGetProcAddress. */
+    public static native boolean proxyInit(boolean trace);
 
     /** Primeira linha: "RESULT=OK" ou "RESULT=FAIL"; o resto e texto de diagnostico. */
     public static native String probe();

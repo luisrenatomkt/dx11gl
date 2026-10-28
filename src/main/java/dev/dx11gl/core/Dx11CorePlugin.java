@@ -31,7 +31,7 @@ public class Dx11CorePlugin implements IFMLLoadingPlugin {
             if (gameDir == null) gameDir = new File(System.getProperty("user.dir"));
             File dir = new File(gameDir, "dx11gl");
             Dx11Log.init(dir);
-            Dx11Log.info("DX11 GL iniciado (etapas 4 e 5a: diagnostico + proxy de teste; renderizador continua OpenGL).");
+            Dx11Log.info("DX11 GL iniciado (etapas 4, 5a e 5b: diagnostico + proxy instrumentado; renderizador continua OpenGL).");
 
             Dx11Config cfg = Dx11Config.load(gameDir);
             if (!cfg.enabled) {
@@ -48,7 +48,7 @@ public class Dx11CorePlugin implements IFMLLoadingPlugin {
             }
             runProbe(dir);
             if (cfg.proxy) {
-                loadProxy(dir);
+                loadProxy(dir, cfg.trace);
             } else {
                 Dx11Log.info("proxy=false: opengl32 proxy nao sera carregado.");
             }
@@ -80,7 +80,7 @@ public class Dx11CorePlugin implements IFMLLoadingPlugin {
         }
     }
 
-    private static void loadProxy(File dir) {
+    private static void loadProxy(File dir, boolean trace) {
         try {
             File gl = new File(dir, "opengl32.dll");
             if (!gl.isFile()) {
@@ -92,7 +92,7 @@ public class Dx11CorePlugin implements IFMLLoadingPlugin {
                 proxyState = "falha ao carregar";
                 return;
             }
-            boolean ok = Dx11Native.proxyInit();
+            boolean ok = Dx11Native.proxyInit(trace);
             proxyState = ok ? "carregado e inicializado" : "carregado, mas init falhou";
             Dx11Log.info("opengl32 proxy: " + proxyState
                     + ". Veja dx11gl_proxy.log / dx11gl_proxy_stats.txt na mesma pasta.");
